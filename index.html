@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Training newlayer by trialsolution</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Training newlayer</h1>
+        <p class="header">training on the new market layer</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/trialsolution/training_newlayer/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/trialsolution/training_newlayer/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/trialsolution/training_newlayer">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/trialsolution">trialsolution</a></p>
+
+
+      </header>
+      <section>
+        <h1>
+<a name="export-subsidy-calibration" class="anchor" href="#export-subsidy-calibration"><span class="octicon octicon-link"></span></a>Export subsidy calibration</h1>
+
+<p>The export subsidy calibration applies a heuristic rule to find the appropriate slope and correction parameters:</p>
+
+<blockquote>
+<p>"If market price is increased by 20% of PADM then the value of subsidized export drops at 20% of the initial level"</p>
+</blockquote>
+
+<pre><code> EQUATION ExpS2_  "Only 20 % of initial use of subsidised export limits if initial market price increases by 20 % of administrative price";
+*
+ EXPs2_(RM,XX) $ ( (DATA(RM,"FEOE_max",XX,"CUR") gt eps) AND DATA(RM,"PADM",XX,"CUR")) ..
+*
+*
+            0.20 * v_valSubsExports(RM,XX) / DATA(RM,"FEOE_max",XX,"CUR") =E=
+*
+            Sigmoid(pv_sigmParSubsExports(RM,"EXPS",XX)/DATA(RM,"PADM",XX,"CUR")
+                                           * ( DATA(RM,"PADM",XX,"CUR")
+                                             -  pv_bevFuncSubsExpCorrFact(RM,XX)
+*pw         NOTE1: v_marketPrice may be &lt; PADM or &gt; PADM in BAS=CUR =&gt; Take v_marketPrice rather than PADM (as in old version)
+*                  as a reference point and assume that an increase of v_marketPrice equal to 0.2*PADM makes the EU so happy
+*                  to reduce the use of export subsidies to 20% of initial value =&gt; gives more reasonable behaviour across products
+*           NOTE2: For sugar PADM was 630 in BAS but 404 post reform =&gt; 20% increase of BAS would be a lot =&gt; reduce to 10%
+                                              *(v_marketPrice(RM,XX)+(0.2- 0.1 $ SAMEAS(XX,"SUGA"))* DATA(RM,"PADM",XX,"CUR"))));   
+</code></pre>
+
+<h1>
+<a name="trq-function-calibration" class="anchor" href="#trq-function-calibration"><span class="octicon octicon-link"></span></a>TRQ function calibration</h1>
+
+<p>Variable tariffs under bilateral quotas are defined vaguely by:</p>
+
+<p>tariff = Pref + (MFN - Pref) * v_trqSigmoidFunc</p>
+
+<p>The last term is defined by the sigmoid function:</p>
+
+<p>trqSigmoidFunc_(RM,RM1,XXX) $</p>
+
+<pre><code>         (
+           ( (p_trqBilat(RM,RM1,XXX,"TrqNT","CUR") GT eps) $ (p_trqBilat(RM,RM1,XXX,"TrqNT","CUR") NE 1.E+10))
+                       $ (p_trqBilat(RM,RM1,XXX,"TrqNT","CUR") NE prohibitive) $ p_tradeFlows(RM,RM1,XXX,"CUR")) ..
+
+
+     v_trqSigmoidFunc(RM,RM1,XXX) =E= Sigmoid(p_trqSigmoidSlope(RM,XXX)/p_trqBilat(RM,RM1,XXX,"TrqNT","CUR")
+                                               * (v_tradeFlows(RM,RM1,XXX)-p_trqBilat(RM,RM1,XXX,"TrqNT","CUR")*0.97));     
+</code></pre>
+
+<p>Two remarks:
+1. It only applies to bilateral trq's
+2. The 0.97 multiplier ensures that if imports are at the quota then an almost MFN rate is applied (otherwise it would be Pref + .5 * (MFN - Pref)</p>
+
+<p>Tariffs under multilateral trq's are defined by the equations tarSpecW_ and tarAdvalW_ and stored under v_tarSpec(RM,"RW",XX) and v_tarAdval(RM,"RW",XX). The mechanism is the same as we apply for bilateral trq's, i.e. sigmoid function representation.</p>
+
+<p>tarSpecW_(RM,"Rw",XXX) $ (        (p_trqGlobl(RM,XXX,"TrqNt","CUR")   gt eps)
+                           $   (   (p_trqGlobl(RM,XXX,"TsPref","CUR")  gt eps)
+                                or (p_trqGlobl(RM,XXX,"TsMFN","CUR")   gt eps)) ) ..
+*
+        v_tarSpec(RM,"RW",XXX)/(p_trqGlobl(RM,XXX,"TsMFN","CUR")+p_trqGlobl(RM,XXX,"TsPref","CUR")) =E=</p>
+
+<pre><code>      ( p_trqGlobl(RM,XXX,"TsPref","CUR")
+        + (   p_trqGlobl(RM,XXX,"TsMFN","CUR")
+             -p_trqGlobl(RM,XXX,"TsPref","CUR"))
+
+           * sigmoid( p_trqSigmoidSlope(RM,XXX)/p_trqGlobl(RM,XXX,"TrqNT","CUR")
+                    * (v_TRQImports(RM,XXX)- p_trqGlobl(RM,XXX,"TrqNT","CUR")*0.97)))
+                    /(p_trqGlobl(RM,XXX,"TsMFN","CUR")+p_trqGlobl(RM,XXX,"TsPref","CUR"));  
+</code></pre>
+
+<p>Note that the equation contains the variable v_TRQImports, which is the sum of imports minus the bilateral trq's (=&gt; bilateral trade flows are fille up first!)                       </p>
+
+<p>*</p>
+
+<ul>
+<li>
+<p>--- Sum of imports under a non allocated TRQ
+*
+TRQImports_(RM,XXX) $ ( p_trqGlobl(RM,XXX,"TrqNT","Cur") gt eps) ..</p>
+
+<p>v_TRQImports(RM,XXX)/(p_trqGlobl(RM,XXX,"TrqNT","Cur")+1)
+    =E=  SUM(RM1 $ (     (NOT p_doubleZero(RM,RM1,XXX,"CUR"))
+                     $ (NOT SAMEAS(RM,RM1))
+                     $ p_tradeFlows(RM,RM1,XXX,"CUR")
+                     $ (NOT p_trqBilat(RM,RM1,XXX,"TrqNt","CUR") eq prohibitive)),</p>
+</li>
+</ul><p>*</p>
+
+<ul>
+<li>        --- trade flows in case there is not bi-lateral TRQ
+*
+          v_tradeFlows(RM,RM1,XXX)
+           $ ( (p_trqBilat(RM,RM1,XXX,"TrqNt","CUR") le eps) $ p_tradeFlows(RM,RM1,XXX,"CUR"))
+*</li>
+<li>        --- overfill of bilateral imports: trade flows exceeding the bilateral quota
+*
+      + (-ncpcm(-(v_tradeFlows(RM,RM1,XXX)-p_trqBilat(RM,RM1,XXX,"TrqNt","CUR")),
+                                      0,1.E-3*p_trqBilat(RM,RM1,XXX,"TrqNt","CUR")))
+           $ (p_trqBilat(RM,RM1,XXX,"TrqNt","CUR") gt eps)
+                                                          )/(p_trqGlobl(RM,XXX,"TrqNT","Cur")+1);</li>
+</ul><p>Remarks:</p>
+
+<ul>
+<li>'ncpcm' is a smooth approximation of the min function: ncpcm(x,y,z) = x - z*ln(1+exp((x-y)/z)</li>
+</ul><h2>
+<a name="entry-price-system" class="anchor" href="#entry-price-system"><span class="octicon octicon-link"></span></a>Entry price system</h2>
+
+<p>Note that the entry price system is part of the TRQ trimming model m_fitTrq</p>
+
+<blockquote>
+<p>MODEL m_fitTrq / trqSigmoidFunc_,TarAdVal_,TarSpec_,TarSpecW_,TarAdValW_,FlipFlop_,tarSpecIfEntryPrice_,EntryPriceDriver_,TrqImports_/; </p>
+</blockquote>
+
+<h2>
+<a name="public-intervention" class="anchor" href="#public-intervention"><span class="octicon octicon-link"></span></a>Public intervention</h2>
+
+<p>CAPRI calculates and endogenous change in intervention stocks, based on intervention buy-ins and releases.</p>
+
+<blockquote>
+<p>INTS (stock change) = INTP (purchases) + INTD (releases)</p>
+</blockquote>
+
+<p>Both the calculation of purchases and releases assume a probability distribution behind market prices. Based on that the probability of market prices undercutting the administrative prices is taken into account.
+The assumed distribution is normal, which has the conveninet property that it can be fully described with the mean and the standard deviation.
+Intervention buy-ins are calculated:</p>
+
+<blockquote>
+<p>Buyin = intMax * errorf[ (PADM - P_market + calib.param) / SD]</p>
+</blockquote>
+
+<p>where SD is the standard deviation of market prices, estimated based on historical time series. PADM is the administrative price. 'errorf' is a GAMS function which coincides with the cumulative distribution function of the standard normal distribution.</p>
+
+<p>Releases, on the other hand, depend on the probability of market prices undercutting the unit value exports:</p>
+
+<blockquote>
+<p>INTD = (STKS + INTP) * [1 - errorf[ (UVAE - P_market + calib.param) / SD]]</p>
+</blockquote>
+
+<p>where STKS is the stock level at the initial point and UVAE denotes unit value exports. </p>
+
+<h3>
+<a name="additional-elements-with-the-new-market-layer" class="anchor" href="#additional-elements-with-the-new-market-layer"><span class="octicon octicon-link"></span></a>Additional elements with the new market layer</h3>
+
+<p>With the new market layer the above calculation of intervention stocks happens at the level of policy blocks.
+Therefore, the the calculated quantities need to be broken down to the level of single market model regions.
+The implementation in CAPRI calculates the release and buy-in shares depending on relative market prices.</p>
+
+<p>Equations: </p>
+
+<ul>
+<li>Release/Buy-in shares (non-numeraire market model regions): buyingShares_, releaseShares_</li>
+<li>Accounting equations (quantities at RMTP = sum of quantities at RM): buyingRM_, buyingRMNum_, releaseRM, releaseRMNum_</li>
+</ul>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>
