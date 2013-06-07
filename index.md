@@ -16,7 +16,7 @@ The export subsidy calibration applies a heuristic rule to find the appropriate 
 def foo
 	puts 'foo'
 end
-{ % endhighlight %} 
+{% endhighlight %} 
 
  EQUATION ExpS2_  "Only 20 % of initial use of subsidised export limits if initial market price increases by 20 % of administrative price";
 *
