@@ -8,9 +8,16 @@ Export subsidy calibration
 ==========================
 
 The export subsidy calibration applies a heuristic rule to find the appropriate slope and correction parameters:
+
 >"If market price is increased by 20% of PADM then the value of subsidized export drops at 20% of the initial level"
 
-{% highlight r %}
+
+{% highlight ruby %}
+def foo
+	puts 'foo'
+end
+{ % endhighlight %} 
+
  EQUATION ExpS2_  "Only 20 % of initial use of subsidised export limits if initial market price increases by 20 % of administrative price";
 *
  EXPs2_(RM,XX) $ ( (DATA(RM,"FEOE_max",XX,"CUR") gt eps) AND DATA(RM,"PADM",XX,"CUR")) ..
@@ -26,7 +33,7 @@ The export subsidy calibration applies a heuristic rule to find the appropriate 
 *                  to reduce the use of export subsidies to 20% of initial value => gives more reasonable behaviour across products
 *           NOTE2: For sugar PADM was 630 in BAS but 404 post reform => 20% increase of BAS would be a lot => reduce to 10%
                                               *(v_marketPrice(RM,XX)+(0.2- 0.1 $ SAMEAS(XX,"SUGA"))* DATA(RM,"PADM",XX,"CUR"))));   
-{ % endhighlight %}                                              
+                                             
                                               
 TRQ function calibration
 ========================
