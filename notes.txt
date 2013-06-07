@@ -99,3 +99,37 @@ Note that the entry price system is part of the TRQ trimming model m_fitTrq
 
 
                                                    
+Public intervention
+-------------------
+
+CAPRI calculates and endogenous change in intervention stocks, based on intervention buy-ins and releases.
+
+> INTS (stock change) = INTP (purchases) + INTD (releases)
+
+Both the calculation of purchases and releases assume a probability distribution behind market prices. Based on that the probability of market prices undercutting the administrative prices is taken into account.
+The assumed distribution is normal, which has the conveninet property that it can be fully described with the mean and the standard deviation.
+Intervention buy-ins are calculated:
+
+> Buyin = intMax * errorf[ (PADM - P_market + calib.param) / SD]
+
+where SD is the standard deviation of market prices, estimated based on historical time series. PADM is the administrative price. 'errorf' is a GAMS function which coincides with the cumulative distribution function of the standard normal distribution.
+
+Releases, on the other hand, depend on the probability of market prices undercutting the unit value exports:
+
+> INTD = (STKS + INTP) * [1 - errorf[ (UVAE - P_market + calib.param) / SD]]
+
+where STKS is the stock level at the initial point and UVAE denotes unit value exports. 
+
+### Additional elements with the new market layer
+
+With the new market layer the above calculation of intervention stocks happens at the level of policy blocks.
+Therefore, the the calculated quantities need to be broken down to the level of single market model regions.
+The implementation in CAPRI calculates the release and buy-in shares depending on relative market prices.
+
+Equations: 
+
+ - Release/Buy-in shares (non-numeraire market model regions): buyingShares_, releaseShares_
+ - Accounting equations (quantities at RMTP = sum of quantities at RM): buyingRM_, buyingRMNum_, releaseRM, releaseRMNum_
+
+
+                                                   
