@@ -1,0 +1,9 @@
+[CHART]
+VERID=GAMSIDE Chart(s) V1
+GDXFILE=sigmoid_results.gdx
+TITLE=todraw
+
+[SERIES1]
+SYMBOL=todraw
+TYPE=multi-linex
+MAP=2,1,3
