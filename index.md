@@ -9,7 +9,7 @@ Export subsidy calibration
 
 The export subsidy calibration applies a heuristic rule to find the appropriate slope and correction parameters:
 
->"If market price is increased by 20% of PADM then the value of subsidized export drops at 20% of the initial level"
+>If market price is increased by 20% of PADM then the value of subsidized export drops at 20% of the initial level
 
 
 {% highlight ruby %}
@@ -18,22 +18,27 @@ def foo
 end
 {% endhighlight %} 
 
- EQUATION ExpS2_  "Only 20 % of initial use of subsidised export limits if initial market price increases by 20 % of administrative price";
-*
- EXPs2_(RM,XX) $ ( (DATA(RM,"FEOE_max",XX,"CUR") gt eps) AND DATA(RM,"PADM",XX,"CUR")) ..
-*
-*
-            0.20 * v_valSubsExports(RM,XX) / DATA(RM,"FEOE_max",XX,"CUR") =E=
-*
-            Sigmoid(pv_sigmParSubsExports(RM,"EXPS",XX)/DATA(RM,"PADM",XX,"CUR")
-                                           * ( DATA(RM,"PADM",XX,"CUR")
-                                             -  pv_bevFuncSubsExpCorrFact(RM,XX)
-*pw         NOTE1: v_marketPrice may be < PADM or > PADM in BAS=CUR => Take v_marketPrice rather than PADM (as in old version)
-*                  as a reference point and assume that an increase of v_marketPrice equal to 0.2*PADM makes the EU so happy
-*                  to reduce the use of export subsidies to 20% of initial value => gives more reasonable behaviour across products
-*           NOTE2: For sugar PADM was 630 in BAS but 404 post reform => 20% increase of BAS would be a lot => reduce to 10%
+
+The code block below is from *cal_models.gms*, describing the heuristic rule in the GAMS language:
+
+	 EQUATION ExpS2_  "Only 20 % of initial use of subsidised export limits if initial market price increases by 20 % of administrative price";
+	*
+	 EXPs2_(RM,XX) $ ( (DATA(RM,"FEOE_max",XX,"CUR") gt eps) AND DATA(RM,"PADM",XX,"CUR")) ..
+	*
+	*
+	            0.20 * v_valSubsExports(RM,XX) / DATA(RM,"FEOE_max",XX,"CUR") =E=
+	*
+	            Sigmoid(pv_sigmParSubsExports(RM,"EXPS",XX)/DATA(RM,"PADM",XX,"CUR")
+	                                           * ( DATA(RM,"PADM",XX,"CUR")
+	                                             -  pv_bevFuncSubsExpCorrFact(RM,XX)
+	*pw         NOTE1: v_marketPrice may be < PADM or > PADM in BAS=CUR => Take v_marketPrice rather than PADM (as in old version)
+	*                  as a reference point and assume that an increase of v_marketPrice equal to 0.2*PADM makes the EU so happy
+	*                  to reduce the use of export subsidies to 20% of initial value => gives more reasonable behaviour across products
+	*           NOTE2: For sugar PADM was 630 in BAS but 404 post reform => 20% increase of BAS would be a lot => reduce to 10%
                                               *(v_marketPrice(RM,XX)+(0.2- 0.1 $ SAMEAS(XX,"SUGA"))* DATA(RM,"PADM",XX,"CUR"))));   
                                              
+    
+    
                                               
 TRQ function calibration
 ========================
