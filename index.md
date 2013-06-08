@@ -9,7 +9,7 @@ Export subsidy calibration
 
 The export subsidy calibration applies a heuristic rule to find the appropriate slope and correction parameters:
 
->If market price is increased by 20% of PADM then the value of subsidized export drops at 20% of the initial level
+	If market price is increased by 20% of PADM then the value of subsidized export drops at 20% of the initial level
 
 
 The code block below is from *cal_models.gms*, describing the heuristic rule in the GAMS language:
