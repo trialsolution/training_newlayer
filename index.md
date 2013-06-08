@@ -12,13 +12,6 @@ The export subsidy calibration applies a heuristic rule to find the appropriate 
 >If market price is increased by 20% of PADM then the value of subsidized export drops at 20% of the initial level
 
 
-{% highlight ruby %}
-def foo
-	puts 'foo'
-end
-{% endhighlight %} 
-
-
 The code block below is from *cal_models.gms*, describing the heuristic rule in the GAMS language:
 
 	 EQUATION ExpS2_  "Only 20 % of initial use of subsidised export limits if initial market price increases by 20 % of administrative price";
